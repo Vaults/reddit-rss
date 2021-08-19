@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,6 +17,8 @@ import (
 )
 
 func main() {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn: os.Getenv("SENTRY_DSN"),
 	})
@@ -35,7 +38,7 @@ func main() {
 	var rssHandler http.Handler
 	rssHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		httpClient := http.DefaultClient
-		client.RssHandler("https://reddit.com", time.Now, httpClient, client.GetArticle, w, r)
+		client.RssHandler("https://www.reddit.com", time.Now, httpClient, client.GetArticle, w, r)
 	})
 
 	redisCacheUrl := os.Getenv("FLY_REDIS_CACHE_URL")

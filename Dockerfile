@@ -22,12 +22,22 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o server ./cmd/reddit-rs
 # Use the official Alpine image for a lean production container.
 # https://hub.docker.com/_/alpine
 # https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
-FROM alpine:3
-RUN apk add --no-cache ca-certificates
+FROM alpine:edge
+
+RUN apk --update --no-cache add tinyproxy
+
+ARG S6_OVERLAY_RELEASE=https://github.com/just-containers/s6-overlay/releases/latest/download/s6-overlay-amd64.tar.gz
+ENV S6_OVERLAY_RELEASE=${S6_OVERLAY_RELEASE}
+ADD ${S6_OVERLAY_RELEASE} /tmp/s6overlay.tar.gz
+RUN apk upgrade --update --no-cache \
+    && rm -rf /var/cache/apk/* \
+    && tar xzf /tmp/s6overlay.tar.gz -C / \
+    && rm /tmp/s6overlay.tar.gz
+COPY s6 /etc/services.d
+ENV S6_BEHAVIOUR_IF_STAGE2_FAILS=2
 
 # Copy the binary to the production image from the builder stage.
 COPY --from=builder /app/server /server
 EXPOSE 8080
 
-# Run the web service on container startup.
-CMD ["/server"]
+CMD ["/init"]
